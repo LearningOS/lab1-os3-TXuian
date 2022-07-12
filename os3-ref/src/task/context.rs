@@ -4,9 +4,9 @@
 #[repr(C)]
 /// task context structure containing some registers
 pub struct TaskContext {
-    ra: usize,
-    sp: usize,
-    s: [usize; 12],
+    ra: usize,  // reg ra, ra stores where should process run after switch.
+    sp: usize,  // reg sp
+    s: [usize; 12], // data of regs
 }
 
 impl TaskContext {

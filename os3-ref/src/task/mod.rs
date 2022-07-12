@@ -119,10 +119,15 @@ impl TaskManager {
     /// or there is no `Ready` task and we can exit with all applications completed
     fn run_next_task(&self) {
         if let Some(next) = self.find_next_task() {
+            // has next task to run
+            // get task manager (inner)
             let mut inner = self.inner.exclusive_access();
+            // get current(soon be old) task's id
             let current = inner.current_task;
+            // set next(soon be current) to current task
             inner.tasks[next].task_status = TaskStatus::Running;
             inner.current_task = next;
+            // get context of two tasks and switch
             let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
             let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
             drop(inner);
@@ -137,6 +142,9 @@ impl TaskManager {
     }
 
     // LAB1: Try to implement your function to update or get task info!
+    pub fn get_current_task_id(&self) -> usize {
+        return self.inner.exclusive_access().current_task;
+    }
 }
 
 /// Run the first task in task list.
