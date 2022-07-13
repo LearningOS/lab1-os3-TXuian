@@ -51,12 +51,10 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
 pub fn sys_task_info(ti: *mut TaskInfo) -> isize {
     // call task control block for info
     let (s, st, t) = get_current_task_info();
-    unsafe {
-        (*ti) = TaskInfo {
-            status: s,
-            syscall_times: st,
-            time: t,
-        }
-    };
+    unsafe{
+        (*ti).status = s;
+        (*ti).syscall_times = st;
+        (*ti).time = t;
+    }
     0
 }
