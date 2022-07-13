@@ -22,6 +22,8 @@ struct UserStack {
     data: [u8; USER_STACK_SIZE],
 }
 
+/* remind that each process needs its own stack and heap */
+
 /// kernel stack instance
 static KERNEL_STACK: [KernelStack; MAX_APP_NUM] = [KernelStack {
     data: [0; KERNEL_STACK_SIZE],
@@ -37,6 +39,8 @@ impl KernelStack {
         self.data.as_ptr() as usize + KERNEL_STACK_SIZE
     }
     pub fn push_context(&self, trap_cx: TrapContext) -> usize {
+        // trap_cx_ptr sets space for context in stack
+        // and then put context in stack.
         let trap_cx_ptr = (self.get_sp() - core::mem::size_of::<TrapContext>()) as *mut TrapContext;
         unsafe {
             *trap_cx_ptr = trap_cx;
@@ -79,14 +83,18 @@ pub fn load_apps() {
     }
     // load apps
     for i in 0..num_app {
+        // base addr of appi
         let base_i = get_base_i(i);
         // clear region
+        // use iter as ptr to clear memory
         (base_i..base_i + APP_SIZE_LIMIT)
             .for_each(|addr| unsafe { (addr as *mut u8).write_volatile(0) });
         // load app from data section to memory
+        // src is data of appi, which is stored in [app_start[i], app_start[i+1]).
         let src = unsafe {
             core::slice::from_raw_parts(app_start[i] as *const u8, app_start[i + 1] - app_start[i])
         };
+        // dst is ptr of memory space going to be loaded. 
         let dst = unsafe { core::slice::from_raw_parts_mut(base_i as *mut u8, src.len()) };
         dst.copy_from_slice(src);
     }
@@ -94,8 +102,10 @@ pub fn load_apps() {
 
 /// get app info with entry and sp and save `TrapContext` in kernel stack
 pub fn init_app_cx(app_id: usize) -> usize {
-    KERNEL_STACK[app_id].push_context(TrapContext::app_init_context(
-        get_base_i(app_id),
+    /* sp point to the first instruction, which is base_addr */
+    KERNEL_STACK[app_id].push_context(
+        TrapContext::app_init_context(
+        get_base_i(app_id), 
         USER_STACK[app_id].get_sp(),
     ))
 }
