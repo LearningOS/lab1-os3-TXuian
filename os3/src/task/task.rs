@@ -2,6 +2,19 @@
 use crate::config::MAX_SYSCALL_NUM;
 use super::TaskContext;
 
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct TimeVal {
+    pub sec: usize,
+    pub usec: usize,
+}
+
+impl TimeVal {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 #[derive(Copy, Clone)]
 /// task control block structure
 pub struct TaskControlBlock {

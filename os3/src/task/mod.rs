@@ -19,9 +19,11 @@ use core::char::MAX;
 use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
+use crate::syscall::{SYSCALL_GET_TIME, syscall, self};
+use crate::timer::{get_time, get_time_us};
 use lazy_static::*;
 pub use switch::__switch;
-pub use task::{TaskControlBlock, TaskStatus};
+pub use task::{TaskControlBlock, TaskStatus, TimeVal};
 
 pub use context::TaskContext;
 
@@ -85,6 +87,8 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let task0 = &mut inner.tasks[0];
         task0.task_status = TaskStatus::Running;
+        let current_time = (get_time_us() / 1_000) as usize;
+        task0.task_time_first_run = current_time;
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
         drop(inner);
         let mut _unused = TaskContext::zero_init();
@@ -131,6 +135,10 @@ impl TaskManager {
             let current = inner.current_task;
             // set next(soon be current) to current task
             inner.tasks[next].task_status = TaskStatus::Running;
+            if inner.tasks[next].task_time_first_run == 0 {
+                let current_time = (get_time_us() / 1_000) as usize;
+                inner.tasks[next].task_time_first_run = current_time;
+            }
             inner.current_task = next;
             // get context of two tasks and switch
             let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
@@ -155,11 +163,8 @@ impl TaskManager {
 
     fn add_current_running_time(&self, ms: usize) {
         let mut inner = self.inner.exclusive_access();
-        let mut current_task_block = inner.tasks[inner.current_task];
-        if current_task_block.task_time_first_run == 0 {
-            current_task_block.task_time_first_run = ms;
-        } 
-        current_task_block.task_running_time = ms;
+        let current = inner.current_task;
+        inner.tasks[current].task_running_time = ms;
     }
 
     pub fn get_current_task_status(&self) -> Option<TaskStatus> {
@@ -213,6 +218,7 @@ pub fn exit_current_and_run_next() {
 
 // LAB1: Public functions implemented here provide interfaces.
 // You may use TASK_MANAGER member functions to handle requests.
+
 pub fn record_syscall(syscall_id: usize) {
     TASK_MANAGER.add_current_syscall_num(syscall_id);
 }

@@ -3,15 +3,9 @@
 use alloc::sync::Arc;
 
 use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
+use crate::task::task::TimeVal;
 use crate::task::{exit_current_and_run_next, suspend_current_and_run_next, TaskStatus, TASK_MANAGER, record_time, get_current_task_info};
 use crate::timer::get_time_us;
-
-#[repr(C)]
-#[derive(Debug)]
-pub struct TimeVal {
-    pub sec: usize,
-    pub usec: usize,
-}
 
 // task info should be stored in TaskControlBlock
 pub struct TaskInfo {
